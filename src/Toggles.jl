@@ -19,8 +19,11 @@ end
 
 Cassette.@context ToggleCtx
 
-Cassette.execute(::ToggleCtx{TriggerType}, thunk::ToggleThunk{TriggerType}) where {TriggerType} = thunk.r()
-toggle(trigger::TriggerType, f, args...; kwargs...) where {TriggerType} = Cassette.@overdub(ToggleCtx(metadata=trigger), f(args...; kwargs...))
+Base.@pure __make_ctx(::Type{T}) where {T} = ToggleCtx(metadata=Val(T))
+
+Cassette.execute(::ToggleCtx{Val{TriggerType}}, thunk::ToggleThunk{TriggerType}) where {TriggerType} = thunk.r()
+toggle(trigger::TriggerType, f::F, args...; kwargs...) where {TriggerType,F} = Cassette.overdub(__make_ctx(TriggerType), (args...) -> f(args...; kwargs...), args...)
+#toggle(trigger::TriggerType, f::F, args...) where {TriggerType,F} = Cassette.overdub(__make_ctx(TriggerType), f, args...)
 
 macro toggle(trigger, expr)
     return :(toggle($(esc(trigger)), ()->$(esc(expr))))
